@@ -1,3 +1,13 @@
+//Functions
+function requireIfExists(module) {
+    try {
+        return require(module);
+    } catch (error) {
+        console.log(`${module} does not exist`)
+    }
+}
+
+
 //Express
 const Router = require('express');
 const router = Router();
@@ -7,13 +17,12 @@ const axios = require('axios');
 axios.defaults.headers.common['User-Agent'] = '(dev weather app, adam.m.loghides@gmail.com)';
 
 //Nodemon
-//const { reset } = require('nodemon');
+const { reset } = requireIfExists('nodemon');
 
 //Mapbox Geolocation
 //const { apiKey, mapboxAPIKey } = require('../credentials');
-//const apiKey = process.env.API_KEY || require('../credentials').apiKey;
-const mapboxAPIKey = process.env.MAPBOX_API_KEY 
-//|| require('../credentials').mapboxAPIKey;
+const apiKey = process.env.API_KEY || requireIfExists('../credentials').apiKey;
+const mapboxAPIKey = process.env.MAPBOX_API_KEY || requireIfExists('../credentials').mapboxAPIKey;
 const mbxClient = require('@mapbox/mapbox-sdk');
 const mbxGeocoding = require('@mapbox/mapbox-sdk/services/geocoding');
 const baseClient = mbxClient({ accessToken: mapboxAPIKey });
