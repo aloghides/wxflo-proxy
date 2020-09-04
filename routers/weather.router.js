@@ -1,13 +1,3 @@
-//Functions
-function requireIfExists(module) {
-    try {
-        return require(module);
-    } catch (error) {
-        console.log(`${module} does not exist`)
-    }
-}
-
-
 //Express
 const Router = require('express');
 const router = Router();
@@ -17,12 +7,12 @@ const axios = require('axios');
 axios.defaults.headers.common['User-Agent'] = '(dev weather app, adam.m.loghides@gmail.com)';
 
 //Nodemon
-const { reset } = requireIfExists('nodemon');
+//const { reset } = requireIfExists('nodemon');
 
 //Mapbox Geolocation
 //const { apiKey, mapboxAPIKey } = require('../credentials');
-const apiKey = process.env.API_KEY || requireIfExists('../credentials').apiKey;
-const mapboxAPIKey = process.env.MAPBOX_API_KEY || requireIfExists('../credentials').mapboxAPIKey;
+const apiKey = process.env.API_KEY;
+const mapboxAPIKey = process.env.MAPBOX_API_KEY;
 const mbxClient = require('@mapbox/mapbox-sdk');
 const mbxGeocoding = require('@mapbox/mapbox-sdk/services/geocoding');
 const baseClient = mbxClient({ accessToken: mapboxAPIKey });
@@ -34,8 +24,6 @@ const geocodingService = mbxGeocoding(baseClient);
 //https://api.weather.gov/gridpoints/MPX/121,75
 //https://api.weather.gov/gridpoints/MPX/121,75/forecast
 //https://api.weather.gov/gridpoints/MPX/121,75/forecast/hourly
-
-
 
 //geocode
 router.get('/geo/location/:location', (req, res) => {
@@ -109,7 +97,6 @@ router.get('/forecast/location/:location', (req, res) => {
           
 })
 
-
 // locaiton based - Current Observations 
 router.get('/obs/location/:location', (req, res) => {
 
@@ -137,9 +124,6 @@ router.get('/obs/location/:location', (req, res) => {
         .catch(err => console.log(err));
           
 })
-
-
-
 
 // do all by location
 router.get('/weather/location/:location', (req, res) => {
@@ -200,7 +184,6 @@ router.get('/weather/location/:location', (req, res) => {
 
 })
 
-
 // do all by position
 router.get('/weather/position/:lat,:lon', (req, res) => {
     
@@ -252,11 +235,5 @@ router.get('/weather/position/:lat,:lon', (req, res) => {
         .catch(err => res.status(500).send(err));
 
 })
-
-
-
-
-
-
 
 module.exports = router;
