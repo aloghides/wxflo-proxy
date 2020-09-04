@@ -8,7 +8,7 @@ const cors = require('cors');
 const weatherRouter = require('./routers/weather.router');
 
 
-const port = 8080;
+const port = process.env.PORT || 8080;
 
 server.use(logger('dev'));
 server.use(cors());
@@ -16,7 +16,7 @@ server.use(cors());
 server.use(weatherRouter);
 
 
-server.listen(8080, () => {
+server.listen(port, () => {
     console.log(`Now listening on port: ${port}`)
 })
 

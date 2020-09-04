@@ -7,7 +7,9 @@ const axios = require('axios');
 axios.defaults.headers.common['User-Agent'] = '(dev weather app, adam.m.loghides@gmail.com)';
 
 //Mapbox Geolocation
-const { apiKey, mapboxAPIKey } = require('../credentials');
+//const { apiKey, mapboxAPIKey } = require('../credentials');
+const apiKey = process.env.API_KEY || require('../credentials').apiKey;
+const mapboxAPIKey = process.env.MAPBOX_API_KEY || require('../credentials').mapboxAPIKey;
 const mbxClient = require('@mapbox/mapbox-sdk');
 const mbxGeocoding = require('@mapbox/mapbox-sdk/services/geocoding');
 const { reset } = require('nodemon');
