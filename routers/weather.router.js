@@ -10,13 +10,17 @@ axios.defaults.headers.common['User-Agent'] = '(dev weather app, adam.m.loghides
 //const { reset } = requireIfExists('nodemon');
 
 //Mapbox Geolocation
-//const { apiKey, mapboxAPIKey } = require('../credentials');
+//const { apiKey, mapboxAPIKey, azureWeatherKey } = require('../credentials');
 const apiKey = process.env.API_KEY;
 const mapboxAPIKey = process.env.MAPBOX_API_KEY;
 const mbxClient = require('@mapbox/mapbox-sdk');
 const mbxGeocoding = require('@mapbox/mapbox-sdk/services/geocoding');
 const baseClient = mbxClient({ accessToken: mapboxAPIKey });
 const geocodingService = mbxGeocoding(baseClient);
+
+//AzureWeather
+const azWeatherBase = 'https://atlas.microsoft.com/weather/currentConditions/json?api-version=1.0';
+const azureWeatherKey = process.env.API_AZ_WEATHERKEY;
 
 
 //API Path Examples
@@ -108,25 +112,22 @@ router.get('/obs/location/:location', (req, res) => {
         .then(locationData => {
             const lat = locationData.features[0].geometry.coordinates[1];
             const lon = locationData.features[0].geometry.coordinates[0];
-            const base = 'https://api.weather.gov/points';
-            const metadataURL = `${base}/${lat},${lon}`;
-            console.log(metadataURL);
-            return axios.get(metadataURL);
+            const azureWeatherURL = `${azWeatherBase}&query=${lat},${lon}&subscription-key=${azureWeatherKey}`;
+            console.log(azureWeatherURL);
+            return axios.get(azureWeatherURL);
         })
-        .then(metaData => {
-            return axios.get(metaData.data.properties.observationStations);
+        .then(obsReponse => {
+            const obsData = obsReponse.data.results;
+            res.status(200).json({obsData});
         })
-        .then(stationResponse => {
-            const obsPath = '/observations/latest'
-            return axios.get(`${stationResponse.data.features[0].id}${obsPath}`)
-        })
-        .then(obsReponse => res.status(200).json(obsReponse.data))
         .catch(err => console.log(err));
           
 })
 
-// do all by location
-router.get('/weather/location/:location', (req, res) => {
+// do all by location using NWS for current
+// the current observations endpoint on NWS API is not fully operation and prone to missing data
+// it is also slowwwwwwwww
+router.get('/weather/locationNWS/:location', (req, res) => {
 
     geocodingService.forwardGeocode({
         query: req.params.location,
@@ -184,8 +185,10 @@ router.get('/weather/location/:location', (req, res) => {
 
 })
 
-// do all by position
-router.get('/weather/position/:lat,:lon', (req, res) => {
+// do all by position using NWS Obs
+// the current observations endpoint on NWS API is not fully operation and prone to missing data
+// it is also slowwwwwwwww
+router.get('/weather/positionOLD/:lat,:lon', (req, res) => {
     
     const lat = req.params.lat;
     const lon = req.params.lon;
@@ -235,5 +238,90 @@ router.get('/weather/position/:lat,:lon', (req, res) => {
         .catch(err => res.status(500).send(err));
 
 })
+
+
+// do all by position using Azure Weather
+router.get('/weather/position/:lat,:lon', (req, res) => {
+    
+    const lat = req.params.lat;
+    const lon = req.params.lon;
+    const base = 'https://api.weather.gov/points';
+    const metadataURL = `${base}/${lat},${lon}`;
+    console.log(metadataURL);
+    axios.get(metadataURL)
+        .then(metaData => {
+            const azureWeatherURL = `${azWeatherBase}&query=${lat},${lon}&subscription-key=${azureWeatherKey}`;
+            const meta = metaData.data;
+            return axios.all([
+                axios.get(metaData.data.properties.forecast),
+                axios.get(metaData.data.properties.forecastHourly),
+                axios.get(azureWeatherURL),
+                meta
+            ])
+        })
+        .then(combinedResponse => {
+            const forecast = combinedResponse[0].data;
+            const forecastHourly = combinedResponse[1].data;
+            const obsData = combinedResponse[2].data.results;
+            const meta = combinedResponse[3];
+            res.status(200).json({
+                forecast,
+                forecastHourly,
+                obsData,
+                meta
+            })
+        })
+        .catch(err => res.status(500).send(err));
+
+})
+
+
+// do all by location azure weather current
+router.get('/weather/location/:location', (req, res) => {
+    console.log('test');
+    geocodingService.forwardGeocode({
+        query: req.params.location,
+        limit: 1
+      }).send()
+        .then(response => response.body)
+        .then(locationData => {
+            const lat = locationData.features[0].geometry.coordinates[1];
+            const lon = locationData.features[0].geometry.coordinates[0];
+            const base = 'https://api.weather.gov/points';
+            const metadataURL = `${base}/${lat},${lon}`;
+            const azureWeatherURL = `${azWeatherBase}&query=${lat},${lon}&subscription-key=${azureWeatherKey}`;
+            console.log(azureWeatherURL);
+            console.log(metadataURL);
+            return axios.all([
+                axios.get(metadataURL),
+                axios.get(azureWeatherURL)
+            ]);
+        })
+        .then(locationResponse => {
+            const metaData = locationResponse[0].data;
+            const obsData = locationResponse[1].data.results;
+            return axios.all([
+                axios.get(metaData.properties.forecast),
+                axios.get(metaData.properties.forecastHourly),
+                obsData,
+                metaData
+            ]);
+        })
+        .then(combinedResponse => {
+            const forecast = combinedResponse[0].data;
+            const forecastHourly = combinedResponse[1].data;
+            const obsData = combinedResponse[2];
+            const meta = combinedResponse[3];
+            res.status(200).json({
+                forecast,
+                forecastHourly,
+                obsData,
+                meta
+            })
+            console.log('test2');
+        })
+        .catch(err => res.status(500).send(err));
+})
+
 
 module.exports = router;
